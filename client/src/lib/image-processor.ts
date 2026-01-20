@@ -1,3 +1,5 @@
+//Canvasってオフラインでも使えるのか
+
 export interface Point {
   x: number;
   y: number;
@@ -85,7 +87,7 @@ export function colorDistance(c1: RGB, c2: RGB): number {
  * 色のリストを類似色ごとにクラスタリングしてIDに変換する
  */
 function mapColorsToIds(colors: RGB[], threshold = 20): number[] {
-  // Lab空間での距離閾値。通常の識別限界(2.3程度)より大きく取り、
+   // Lab空間での距離閾値。通常の識別限界(2.3程度)より大きく取り、
   // ゲーム画面の影やグラデーションによる誤差(10-20程度)を許容する設定。
   const ids: number[] = [];
   const uniqueColors: RGB[] = [];
@@ -114,7 +116,7 @@ function mapColorsToIds(colors: RGB[], threshold = 20): number[] {
 
 /**
  * 画像から筒と色の情報を抽出する
- * ユーザーが指定したサンプリングポイント（キャリブレーション座標）に基づいて色を判定します。
+ *  * ユーザーが指定したサンプリングポイント（キャリブレーション座標）に基づいて色を判定します。
  */
 export async function processPuzzleImage(
   imageElement: HTMLImageElement,
@@ -131,7 +133,8 @@ export async function processPuzzleImage(
   const allColors: RGB[] = [];
   const tubeStructure: { tubeIndex: number, slotIndex: number }[] = [];
 
-  // 全てのポイントから色を抽出 (半径3pxの平均)
+
+// 全てのポイントから色を抽出 (半径3pxの平均)
   samplingPoints.forEach((tubePoints, tIdx) => {
     tubePoints.forEach((point, sIdx) => {
       const x = Math.floor(point.x);
