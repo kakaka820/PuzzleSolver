@@ -9,11 +9,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Solver from "@/pages/Solver";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Calibration from "@/pages/Calibration";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/calibration" component={Calibration} />
       <Route path="/" component={Solver} />
       <Route component={NotFound} />
     </Switch>
