@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 
+
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +25,10 @@ export default function Home() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      setSelectedImage(e.target?.result as string);
+     const imageData = e.target?.result as string;
+      setSelectedImage(imageData);
+      // Save to session storage to pass to next page
+      sessionStorage.setItem("puzzle_image", imageData);
     };
     reader.readAsDataURL(file);
   };
@@ -55,19 +59,19 @@ export default function Home() {
     fileInputRef.current?.click();
   };
 
-  const handleNext = () => {
-    // Navigate to solver page. In a real app, we might pass the image via state or context.
-    setLocation("/solver");
-  };
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-2xl">
-        <CardContent className="p-6 flex flex-col items-center gap-6">
-          <h1 className="text-2xl font-bold text-gray-900 font-display">Puzzle Solver</h1>
+        <CardContent className="p-10 flex flex-col items-center gap-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 font-display">Puzzle Solver</h1>
+            <p className="text-muted-foreground">Upload a screenshot to start solving</p>
+          </div>
           
           <div 
-            className="w-full aspect-video rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative overflow-hidden"
+            className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-white hover:bg-gray-50 transition-all cursor-pointer relative overflow-hidden group shadow-sm"
             onClick={triggerFileInput}
           >
             {selectedImage ? (
@@ -77,9 +81,14 @@ export default function Home() {
                 className="w-full h-full object-contain"
               />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-gray-500">
-                <ImageIcon className="w-12 h-12" />
-                <p className="text-sm font-medium">Click to upload or paste image</p>
+              <div className="flex flex-col items-center gap-4 text-gray-400 group-hover:text-primary transition-colors">
+                <div className="p-4 bg-gray-50 rounded-full group-hover:bg-primary/5">
+                  <ImageIcon className="w-12 h-12" />
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-medium text-gray-600">Click to upload image</p>
+                  <p className="text-sm">or paste from clipboard</p>
+                </div>
               </div>
             )}
             <input 
@@ -92,20 +101,15 @@ export default function Home() {
           </div>
 
           <div className="flex gap-4">
-            <Button onClick={triggerFileInput} variant="secondary">
+            <Button onClick={triggerFileInput} size="lg" variant={selectedImage ? "outline" : "default"}>
               <Upload className="w-4 h-4 mr-2" />
-              Select Image
+              {selectedImage ? "Change Image" : "Select Image"}
             </Button>
             {selectedImage && (
-              <>
-                <Button variant="outline" onClick={() => setSelectedImage(null)}>
-                  Clear
-                </Button>
-                <Button onClick={handleNext}>
-                  Next Step
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </>
+              <Button onClick={() => setLocation("/calibration")} size="lg" className="px-8">
+                Next Step
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             )}
           </div>
         </CardContent>
