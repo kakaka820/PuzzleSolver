@@ -1,22 +1,33 @@
+//色選択画面
+//client/src/pages/Calibration.tsx
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, MousePointer2, Plus, Trash2, RotateCcw } from "lucide-react";
+import { ArrowRight, ArrowLeft, MousePointer2, Plus, Trash2, RotateCcw, Palette, Image as ImageIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { getPixelColor, type RGB, type Point } from "@/lib/image-processor";
 
-interface SamplingPoint extends Point {
+interface PaletteColor {
   id: string;
+  color: RGB;
+  name?: string;
+}
+
+interface BackgroundConfig {
   color: RGB | null;
+  enabled: boolean;
 }
 
 export default function Calibration() {
   const [image, setImage] = useState<string | null>(null);
-  const [samplingPoints, setSamplingPoints] = useState<SamplingPoint[]>([]);
-  const [activePointId, setActivePointId] = useState<string | null>(null);
+  const [palette, setPalette] = useState<PaletteColor[]>([]);
+  const [background, setBackground] = useState<BackgroundConfig>({ color: null, enabled: false });
+  const [selectionMode, setSelectionMode] = useState<"palette" | "background">("palette");
+  const [activeColorId, setActiveColorId] = useState<string | null>(null);
+  
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isDragging = useRef(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -27,13 +38,18 @@ export default function Calibration() {
     }
     setImage(savedImage);
 
-    const savedPoints = sessionStorage.getItem("sampling_points");
-    if (savedPoints) {
-      setSamplingPoints(JSON.parse(savedPoints));
+    const savedPalette = sessionStorage.getItem("color_palette");
+    if (savedPalette) {
+      setPalette(JSON.parse(savedPalette));
+    }
+    
+    const savedBg = sessionStorage.getItem("background_config");
+    if (savedBg) {
+      setBackground(JSON.parse(savedBg));
     }
   }, [setLocation]);
 
-  const updatePointColor = useCallback((point: Point): RGB | null => {
+  const sampleColor = useCallback((x: number, y: number): RGB | null => {
     if (!imageRef.current) return null;
     const img = imageRef.current;
     
@@ -47,64 +63,12 @@ export default function Calibration() {
     
     if (ctx) {
       ctx.drawImage(img, 0, 0);
-      return getPixelColor(ctx, Math.floor(point.x), Math.floor(point.y), 3);
+      return getPixelColor(ctx, Math.floor(x), Math.floor(y), 5);
     }
     return null;
   }, []);
 
-  const addPointAt = useCallback((x: number, y: number) => {
-    const newPoint: SamplingPoint = {
-      id: Math.random().toString(36).substr(2, 9),
-      x,
-      y,
-      color: null
-    };
-    newPoint.color = updatePointColor({ x, y });
-    setSamplingPoints(prev => {
-      const updated = [...prev, newPoint];
-      sessionStorage.setItem("sampling_points", JSON.stringify(updated));
-      return updated;
-    });
-    setActivePointId(newPoint.id);
-  }, [updatePointColor]);
-
-  const removePoint = (id: string) => {
-    setSamplingPoints(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      sessionStorage.setItem("sampling_points", JSON.stringify(updated));
-      return updated;
-    });
-    if (activePointId === id) setActivePointId(null);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging.current || !activePointId || !imageRef.current) return;
-    const img = imageRef.current;
-    const rect = img.getBoundingClientRect();
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    
-    const x = Math.max(0, Math.min(img.naturalWidth, (clientX - rect.left) * (img.naturalWidth / rect.width)));
-    const y = Math.max(0, Math.min(img.naturalHeight, (clientY - rect.top) * (img.naturalHeight / rect.height)));
-    
-    setSamplingPoints(prev => {
-      const updated = prev.map(p => {
-        if (p.id === activePointId) {
-          const color = updatePointColor({ x, y });
-          return { ...p, x, y, color };
-        }
-        return p;
-      });
-      sessionStorage.setItem("sampling_points", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
   const handleImageClick = (e: React.MouseEvent) => {
-    // If we were dragging, don't add a new point
-    if (isDragging.current) return;
-    
     if (!imageRef.current) return;
     const img = imageRef.current;
     const rect = img.getBoundingClientRect();
@@ -112,7 +76,29 @@ export default function Calibration() {
     const x = (e.clientX - rect.left) * (img.naturalWidth / rect.width);
     const y = (e.clientY - rect.top) * (img.naturalHeight / rect.height);
     
-    addPointAt(x, y);
+    const color = sampleColor(x, y);
+    if (!color) return;
+
+    if (selectionMode === "palette") {
+      const newColor: PaletteColor = {
+        id: Math.random().toString(36).substr(2, 9),
+        color
+      };
+      const updated = [...palette, newColor];
+      setPalette(updated);
+      sessionStorage.setItem("color_palette", JSON.stringify(updated));
+    } else {
+      const newBg = { color, enabled: true };
+      setBackground(newBg);
+      sessionStorage.setItem("background_config", JSON.stringify(newBg));
+      setSelectionMode("palette"); // 背景色選択後はパレットモードに戻す
+    }
+  };
+
+  const removePaletteColor = (id: string) => {
+    const updated = palette.filter(c => c.id !== id);
+    setPalette(updated);
+    sessionStorage.setItem("color_palette", JSON.stringify(updated));
   };
 
   const handleNext = () => {
@@ -130,20 +116,22 @@ export default function Calibration() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 font-display">Calibrate Colors</h1>
-              <p className="text-sm text-muted-foreground">Click image to add markers, drag to adjust</p>
+              <h1 className="text-2xl font-bold text-gray-900 font-display">Setup Colors</h1>
+              <p className="text-sm text-muted-foreground">Register representative colors and optional background</p>
             </div>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => {
-              setSamplingPoints([]);
-              sessionStorage.removeItem("sampling_points");
+              setPalette([]);
+              setBackground({ color: null, enabled: false });
+              sessionStorage.removeItem("color_palette");
+              sessionStorage.removeItem("background_config");
             }}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset
             </Button>
-            <Button onClick={handleNext} disabled={samplingPoints.length === 0}>
-              Start Solving
+            <Button onClick={handleNext} disabled={palette.length === 0}>
+              Continue to Solve
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -153,12 +141,7 @@ export default function Calibration() {
           <Card className="lg:col-span-3 overflow-hidden shadow-md">
             <CardContent className="p-0 bg-black/5 relative min-h-[60vh] flex items-center justify-center">
               <div 
-                className="relative w-full h-full flex items-center justify-center select-none p-4 cursor-crosshair"
-                onMouseMove={handleMouseMove}
-                onTouchMove={handleMouseMove}
-                onMouseUp={() => setTimeout(() => isDragging.current = false, 50)}
-                onTouchEnd={() => setTimeout(() => isDragging.current = false, 50)}
-                onMouseLeave={() => isDragging.current = false}
+                className={`relative w-full h-full flex items-center justify-center select-none p-4 cursor-crosshair ${selectionMode === 'background' ? 'ring-4 ring-inset ring-blue-400' : ''}`}
                 onClick={handleImageClick}
               >
                 <img 
@@ -167,95 +150,108 @@ export default function Calibration() {
                   alt="Puzzle screenshot" 
                   className="max-w-full max-h-[80vh] object-contain pointer-events-none shadow-2xl rounded"
                 />
-                
-                {imageRef.current && samplingPoints.map((point) => {
-                  const rect = imageRef.current!.getBoundingClientRect();
-                  const displayX = (point.x / imageRef.current!.naturalWidth) * rect.width;
-                  const displayY = (point.y / imageRef.current!.naturalHeight) * rect.height;
-                  const isActive = point.id === activePointId;
-
-                  return (
-                    <div
-                      key={point.id}
-                      className={`absolute w-6 h-6 -ml-3 -mt-3 cursor-move flex items-center justify-center transition-all ${isActive ? 'scale-125 z-20' : 'z-10'}`}
-                      style={{ 
-                        left: `${(imageRef.current!.offsetLeft - imageRef.current!.parentElement!.offsetLeft) + displayX}px`,
-                        top: `${(imageRef.current!.offsetTop - imageRef.current!.parentElement!.offsetTop) + displayY}px`
-                      }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        setActivePointId(point.id);
-                        isDragging.current = true;
-                      }}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                        setActivePointId(point.id);
-                        isDragging.current = true;
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className={`w-full h-full rounded-full border-2 shadow-xl flex items-center justify-center ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-white'}`}
-                           style={{ backgroundColor: point.color ? `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})` : 'transparent' }}>
-                        <div className="w-1 h-1 bg-white rounded-full shadow-sm" />
-                      </div>
-                    </div>
-                  );
-                })}
+                {selectionMode === 'background' && (
+                  <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg z-30 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    Background Selection Mode: Click background area
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-md h-fit">
             <CardContent className="p-6 space-y-6">
+              {/* Background Color Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  Background Color (Optional)
+                </h3>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                  <div 
+                    className="w-10 h-10 rounded-md border shadow-sm"
+                    style={{ backgroundColor: background.color ? `rgb(${background.color.r}, ${background.color.g}, ${background.color.b})` : 'transparent' }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium">
+                      {background.color ? "Registered" : "Not Registered"}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-auto p-0 text-[10px]"
+                      onClick={() => setSelectionMode("background")}
+                    >
+                      {background.color ? "Reselect" : "Click to Select"}
+                    </Button>
+                  </div>
+                  {background.color && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        setBackground({ color: null, enabled: false });
+                        sessionStorage.removeItem("background_config");
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <hr />
+
+              {/* Palette Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-semibold">Markers ({samplingPoints.length})</h2>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-primary" />
+                    Color Palette ({palette.length})
+                  </h3>
                 </div>
                 
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
-                  {samplingPoints.length === 0 && (
-                    <p className="text-sm text-center text-muted-foreground py-8">
-                      Click on the image to add your first marker
-                    </p>
-                  )}
-                  {samplingPoints.map((point, index) => (
+                <div className="grid grid-cols-4 gap-2">
+                  {palette.map((item) => (
                     <div 
-                      key={point.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${point.id === activePointId ? 'bg-primary/5 border-primary' : 'bg-white hover:bg-gray-50'}`}
-                      onClick={() => setActivePointId(point.id)}
+                      key={item.id}
+                      className="group relative aspect-square rounded-md border shadow-sm cursor-default"
+                      style={{ backgroundColor: `rgb(${item.color.r}, ${item.color.g}, ${item.color.b})` }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-6 h-6 rounded-md border shadow-sm"
-                          style={{ backgroundColor: point.color ? `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})` : 'transparent' }}
-                        />
-                        <div>
-                          <p className="text-xs font-medium">Marker #{index + 1}</p>
-                          <p className="text-[10px] font-mono text-muted-foreground">
-                            {Math.round(point.x)}, {Math.round(point.y)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      <button 
+                        className="absolute -top-1 -right-1 bg-white rounded-full shadow-md p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
-                          removePoint(point.id);
+                          removePaletteColor(item.id);
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </button>
                     </div>
                   ))}
+                  <button 
+                    className="aspect-square rounded-md border-2 border-dashed flex items-center justify-center text-muted-foreground hover:bg-primary/5 hover:border-primary transition-all"
+                    onClick={() => setSelectionMode("palette")}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 </div>
+
+                {palette.length === 0 && (
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    Click the image to register colors used in the puzzle.
+                  </p>
+                )}
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex gap-3">
                 <MousePointer2 className="w-5 h-5 text-blue-500 shrink-0" />
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Click the image to place a marker. Drag existing markers to adjust.
+                <p className="text-[10px] text-blue-700 leading-relaxed">
+                  1. Add colors found in bottles.<br />
+                  2. (Optional) Register background color to improve accuracy.<br />
+                  3. Colors will be matched automatically during solving.
                 </p>
               </div>
             </CardContent>

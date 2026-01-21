@@ -1,9 +1,14 @@
+//client/src/pages/home.tsx
+
+
+
+
+
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
-
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -58,8 +63,6 @@ export default function Home() {
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
-
-
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
