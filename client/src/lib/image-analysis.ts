@@ -1,5 +1,6 @@
 //client/src/lib/image-analyss.ts
 //画像処理、サンプリング、ピクセルのクラスタリング、ボトル構造解析のロジック
+//画像解析の精度まだ低いのでこれを高める
 
 
 import { RGB, Point, Cluster, getPixelColor, findMatchingColor } from './color-utils';
@@ -156,3 +157,4 @@ export function analyzeStructure(
     return a.x - b.x;
   });
 }
+
