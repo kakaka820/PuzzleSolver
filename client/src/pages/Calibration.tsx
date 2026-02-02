@@ -1,4 +1,3 @@
-//色選択画面
 //client/src/pages/Calibration.tsx
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -24,7 +23,6 @@ export default function Calibration() {
   const [palette, setPalette] = useState<PaletteColor[]>([]);
   const [background, setBackground] = useState<BackgroundConfig>({ color: null, enabled: false });
   const [selectionMode, setSelectionMode] = useState<"palette" | "background">("palette");
-  const [activeColorId, setActiveColorId] = useState<string | null>(null);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -38,12 +36,12 @@ export default function Calibration() {
     }
     setImage(savedImage);
 
-    const savedPalette = sessionStorage.getItem("color_palette");
+    const savedPalette = localStorage.getItem("color_palette");
     if (savedPalette) {
       setPalette(JSON.parse(savedPalette));
     }
     
-    const savedBg = sessionStorage.getItem("background_config");
+    const savedBg = localStorage.getItem("background_config");
     if (savedBg) {
       setBackground(JSON.parse(savedBg));
     }
@@ -86,11 +84,11 @@ export default function Calibration() {
       };
       const updated = [...palette, newColor];
       setPalette(updated);
-      sessionStorage.setItem("color_palette", JSON.stringify(updated));
+      localStorage.setItem("color_palette", JSON.stringify(updated));
     } else {
       const newBg = { color, enabled: true };
       setBackground(newBg);
-      sessionStorage.setItem("background_config", JSON.stringify(newBg));
+      localStorage.setItem("background_config", JSON.stringify(newBg));
       setSelectionMode("palette"); // 背景色選択後はパレットモードに戻す
     }
   };
@@ -98,7 +96,7 @@ export default function Calibration() {
   const removePaletteColor = (id: string) => {
     const updated = palette.filter(c => c.id !== id);
     setPalette(updated);
-    sessionStorage.setItem("color_palette", JSON.stringify(updated));
+    localStorage.setItem("color_palette", JSON.stringify(updated));
   };
 
   const handleNext = () => {
@@ -124,8 +122,8 @@ export default function Calibration() {
             <Button variant="outline" onClick={() => {
               setPalette([]);
               setBackground({ color: null, enabled: false });
-              sessionStorage.removeItem("color_palette");
-              sessionStorage.removeItem("background_config");
+              localStorage.removeItem("color_palette");
+              localStorage.removeItem("background_config");
             }}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset
@@ -193,7 +191,7 @@ export default function Calibration() {
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => {
                         setBackground({ color: null, enabled: false });
-                        sessionStorage.removeItem("background_config");
+                        localStorage.removeItem("background_config");
                       }}
                     >
                       <Trash2 className="w-4 h-4" />
