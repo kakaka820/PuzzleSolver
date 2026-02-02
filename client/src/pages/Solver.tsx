@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Tube } from "@/components/Tube";
 import { ColorPalette } from "@/components/ColorPalette";
 import { Controls } from "@/components/Controls";
-import { useSolvePuzzle, type Tube as TubeType } from "@/hooks/use-solver";
+import { type Tube as TubeType } from "@/hooks/use-solver";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Loader2 } from "lucide-react";
+import { solvePuzzle } from "@shared/solver";
 
 // Initial state: 4 tubes, empty
 const INITIAL_TUBES = [[], [], [], []];
@@ -19,10 +20,11 @@ export default function Solver() {
   const [solutionMoves, setSolutionMoves] = useState<{from: number, to: number}[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [originalState, setOriginalState] = useState<TubeType[]>([]);
+  const [isSolving, setIsSolving] = useState(false);
 
   const { toast } = useToast();
-  const solveMutation = useSolvePuzzle();
 
+  
   // Reset to edit mode
   const handleReset = () => {
     if (solutionMode) {
@@ -298,3 +300,4 @@ export default function Solver() {
     </div>
   );
 }
+
