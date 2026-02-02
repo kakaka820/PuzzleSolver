@@ -33,8 +33,8 @@ export default function Solver() {
       if (analysisPerformed.current) return;
       
       const imageData = sessionStorage.getItem("puzzle_image");
-      const savedPalette = sessionStorage.getItem("color_palette");
-      const savedBg = sessionStorage.getItem("background_config");
+      const savedPalette = localStorage.getItem("color_palette");
+      const savedBg = localStorage.getItem("background_config");
 
       if (!imageData || !savedPalette) {
         setLocation("/calibration");
