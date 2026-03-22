@@ -5,15 +5,17 @@ import { api, type SolveResponse } from "@shared/routes";
 // Tubes are arrays of numbers (color IDs)
 export type Tube = number[];
 
+
 export function useSolvePuzzle() {
   return useMutation({
     mutationFn: async (tubes: Tube[]) => {
       // Validate with shared schema input first if needed, or just send JSON
       // The API expects { tubes: number[][] }
-      const res = await fetch(api.solver.solve.path, {
-        method: api.solver.solve.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tubes }),
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}${api.solver.solve.path}`, {
+      method: api.solver.solve.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tubes }),
       });
 
       if (!res.ok) {
