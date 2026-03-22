@@ -32,6 +32,32 @@ export default function Solver() {
   useEffect(() => {
     async function init() {
       if (analysisPerformed.current) return;
+
+        // 手動入力モード(いつかlocalstrageから読み取り処理もやってみる)
+  const manualMode = sessionStorage.getItem("manual_mode");
+  if (manualMode) {
+    sessionStorage.removeItem("manual_mode");
+    const defaultPalette = [
+      { id: "red",    color: { r: 239, g: 68,  b: 68  } },
+      { id: "blue",   color: { r: 59,  g: 130, b: 246 } },
+      { id: "green",  color: { r: 34,  g: 197, b: 94  } },
+      { id: "yellow", color: { r: 250, g: 204, b: 21  } },
+      { id: "purple", color: { r: 168, g: 85,  b: 247 } },
+      { id: "orange", color: { r: 249, g: 115, b: 22  } },
+      { id: "pink",   color: { r: 236, g: 72,  b: 153 } },
+      { id: "cyan",   color: { r: 34,  g: 211, b: 238 } },
+      { id: "lime",   color: { r: 132, g: 204, b: 22  } },
+      { id: "indigo", color: { r: 99,  g: 102, b: 241 } },
+      { id: "teal",   color: { r: 20,  g: 184, b: 166 } },
+      { id: "brown",  color: { r: 161, g: 110, b: 77  } },
+    ];
+    setPalette(defaultPalette);
+    setSelectedColorId(defaultPalette[0].id);
+    setTubes([[], [], [], [], [], []]);
+    setIsAnalyzing(false);
+    analysisPerformed.current = true;
+    return;
+  }
       
       const imageData = sessionStorage.getItem("puzzle_image");
       const savedPalette = sessionStorage.getItem("color_palette");
