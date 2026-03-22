@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Tube } from "@/components/Tube";
 import { ColorPalette } from "@/components/ColorPalette";
 import { Controls } from "@/components/Controls";
+import { useSolvePuzzle } from "@/hooks/use-solver";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -9,7 +10,6 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { detectPuzzleState } from "@/lib/image-processor";
 import { Button } from "@/components/ui/button";
-import { solvePuzzle } from "@shared/solver";
 
 const MAX_CAPACITY = 4;
 
@@ -22,19 +22,20 @@ export default function Solver() {
   const [originalState, setOriginalState] = useState<string[][]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [palette, setPalette] = useState<{ id: string; color: any }[]>([]);
-  const [isSolving, setIsSolving] = useState(false);
-  
+  const [isEraserMode, setIsEraserMode] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const solveMutation = useSolvePuzzle();
   const analysisPerformed = useRef(false);
+  const initialDetectedState = useRef<string[][]>([]);
 
   useEffect(() => {
     async function init() {
       if (analysisPerformed.current) return;
       
       const imageData = sessionStorage.getItem("puzzle_image");
-      const savedPalette = localStorage.getItem("color_palette");
-      const savedBg = localStorage.getItem("background_config");
+      const savedPalette = sessionStorage.getItem("color_palette");
+      const savedBg = sessionStorage.getItem("background_config");
 
       if (!imageData || !savedPalette) {
         setLocation("/calibration");
@@ -64,6 +65,7 @@ export default function Solver() {
         }
 
         setTubes(state);
+        initialDetectedState.current = JSON.parse(JSON.stringify(state));
         setIsAnalyzing(false);
         analysisPerformed.current = true;
       } catch (err) {
@@ -81,7 +83,11 @@ export default function Solver() {
       setSolutionMode(false);
       setSolutionMoves([]);
       setCurrentStep(0);
-    }
+    }else {
+    setTubes(JSON.parse(JSON.stringify(initialDetectedState.current)));
+    setIsEraserMode(false);
+    toast({ description: "Reset to detected state" });
+  }
   };
 
   const handleClear = () => {
@@ -106,26 +112,35 @@ export default function Solver() {
   };
 
   const handleTubeClick = (tubeIndex: number) => {
-    if (solutionMode) return;
-    if (selectedColorId === null) {
-      toast({ description: "Select a color from the palette first" });
-      return;
+  if (solutionMode) return;
+
+  setTubes(prev => {
+    const newTubes = [...prev];
+    const tube = [...newTubes[tubeIndex]];
+
+    if (isEraserMode) {
+      // 削除モード：上のボールを1個取り除く
+      if (tube.length > 0) {
+        tube.pop();
+      }
+    } else {
+      // 通常モード：常に選択色を追加する
+      if (selectedColorId === null) {
+        toast({ description: "Select a color from the palette first" });
+        return prev;
+      }
+      if (tube.length < MAX_CAPACITY) {
+        tube.push(selectedColorId);
+      } else {
+        toast({ description: "Tube is full!" });
+        return prev;
+      }
     }
 
-    setTubes(prev => {
-      const newTubes = [...prev];
-      const tube = [...newTubes[tubeIndex]];
-
-      if (tube.length > 0 && tube[tube.length - 1] === selectedColorId) {
-        tube.pop();
-      } else if (tube.length < MAX_CAPACITY) {
-        tube.push(selectedColorId);
-      }
-      
-      newTubes[tubeIndex] = tube;
-      return newTubes;
-    });
-  };
+    newTubes[tubeIndex] = tube;
+    return newTubes;
+  });
+};
 
   const handleSolve = async () => {
     const idMap = new Map<string, number>();
@@ -133,18 +148,15 @@ export default function Solver() {
 
     const numericTubes = tubes.map(t => t.map(colorId => idMap.get(colorId)!));
 
-    setIsSolving(true);
     try {
-      // サーバーを介さず、ブラウザ上で直接計算を実行
-      const result = solvePuzzle(numericTubes, MAX_CAPACITY, "nut");
+      const result = await solveMutation.mutateAsync(numericTubes);
       
       if (!result.solvable) {
         toast({ 
           variant: "destructive", 
           title: "Unsolvable!", 
-          description: "This configuration has no solution." 
+          description: result.error || "This configuration has no solution." 
         });
-        setIsSolving(false);
         return;
       }
 
@@ -160,8 +172,6 @@ export default function Solver() {
       });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
-    } finally {
-      setIsSolving(false);
     }
   };
 
@@ -266,10 +276,12 @@ export default function Solver() {
                   onClear={handleClear}
                   onAddTube={handleAddTube}
                   onRemoveTube={handleRemoveTube}
-                  onReset={handleClear}
+                  onReset={handleReset}
                   canSolve={tubes.some(t => t.length > 0)}
-                  isSolving={isSolving}
+                  isSolving={solveMutation.isPending}
                   solutionMode={false}
+                  isEraserMode={isEraserMode}
+                  onToggleEraser={() => setIsEraserMode(prev => !prev)}
                 />
               </div>
             </motion.div>
