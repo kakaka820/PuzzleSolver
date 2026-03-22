@@ -12,11 +12,13 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-  });
+
+const baseUrl = import.meta.env.VITE_API_URL || '';
+const res = await fetch(`${baseUrl}${url}`, {
+  method,
+  headers: data ? { "Content-Type": "application/json" } : {},
+  body: data ? JSON.stringify(data) : undefined,
+});
 
   await throwIfResNotOk(res);
   return res;
