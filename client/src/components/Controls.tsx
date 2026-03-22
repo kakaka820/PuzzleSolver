@@ -26,6 +26,8 @@ interface ControlsProps {
   onPrevStep?: () => void;
   currentStep?: number;
   totalSteps?: number;
+  isEraserMode?: boolean;
+  onToggleEraser?: () => void;
 }
 
 export function Controls({ 
@@ -40,7 +42,9 @@ export function Controls({
   onNextStep,
   onPrevStep,
   currentStep = 0,
-  totalSteps = 0
+  totalSteps = 0,
+  isEraserMode = false,
+  onToggleEraser,
 }: ControlsProps) {
 
   if (solutionMode) {
@@ -127,12 +131,17 @@ export function Controls({
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="secondary" onClick={onClear} className="h-12 rounded-xl bg-white shadow-sm border border-border/50 text-orange-500 hover:bg-orange-50">
-              <Eraser className="w-5 h-5" />
+        <TooltipTrigger asChild>
+        <Button
+          variant={isEraserMode ? "default" : "outline"}
+          size="icon"
+          onClick={onToggleEraser}
+          className={isEraserMode ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
+        >
+              <Eraser className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Clear All</TooltipContent>
+          <TooltipContent>{isEraserMode ? "Eraser ON (tap to exit)" : "Eraser Mode"}</TooltipContent>
         </Tooltip>
 
         <Tooltip>
