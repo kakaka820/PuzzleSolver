@@ -63,6 +63,11 @@ export default function Home() {
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+  
+  const handleManualMode = () => {
+    sessionStorage.setItem("manual_mode", "true");
+    setLocation("/solver");
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
@@ -114,6 +119,15 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
+            <div className="mt-4 text-center">
+          <p className="text-sm text-gray-400 mb-2">または</p>
+          <button
+            onClick={handleManualMode}
+            className="text-sm text-gray-500 underline hover:text-gray-700"
+          >
+            画像なしで手動入力する
+          </button>
+        </div>
           </div>
         </CardContent>
       </Card>
