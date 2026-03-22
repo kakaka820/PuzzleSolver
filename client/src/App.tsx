@@ -2,6 +2,7 @@
 //ルーティング設定
 
 import { Switch, Route, Router } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,7 +17,7 @@ function AppRouter() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/calibration" component={Calibration} />
-      <Route path="/" component={Solver} />
+      <Route path="/solver" component={Solver} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -24,7 +25,7 @@ function AppRouter() {
 
 function App() {
   return (
-    <Router base="/PuzzleSolver">
+    <Router hook={useHashLocation}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
