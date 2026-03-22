@@ -61,11 +61,6 @@ function heuristic(state: PuzzleState, tubeCapacity: number): number {
       if (tube[i] !== tube[i + 1]) switches++;
     }
     score += switches * 10;
-
-    // Penalty for non-full tubes that are homogeneous (should be full)
-    if (switches === 0 && tube.length < tubeCapacity) {
-      score += (tubeCapacity - tube.length) * 2;
-    }
   }
   return score;
 }
@@ -77,8 +72,6 @@ function serializeState(state: PuzzleState): string {
 function isSolved(state: PuzzleState, tubeCapacity: number): boolean {
   for (const tube of state) {
     if (tube.length === 0) continue;
-    if (tube.length !== tubeCapacity) return false;
-    // Check if all same color
     const firstColor = tube[0];
     for (let i = 1; i < tube.length; i++) {
       if (tube[i] !== firstColor) return false;
