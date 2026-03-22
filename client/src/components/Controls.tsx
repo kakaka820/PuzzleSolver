@@ -133,13 +133,14 @@ export function Controls({
         <Tooltip>
         <TooltipTrigger asChild>
         <Button
-          variant={isEraserMode ? "default" : "outline"}
-          size="icon"
+          variant="secondary"
           onClick={onToggleEraser}
-          className={isEraserMode ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
+          className={isEraserMode
+            ? "h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-sm border border-border/50"
+            : "h-12 rounded-xl bg-white shadow-sm border border-border/50"}
         >
-              <Eraser className="h-4 w-4" />
-            </Button>
+          <Eraser className="w-5 h-5" />
+        </Button>
           </TooltipTrigger>
           <TooltipContent>{isEraserMode ? "Eraser ON (tap to exit)" : "Eraser Mode"}</TooltipContent>
         </Tooltip>
