@@ -1,7 +1,7 @@
 //client/src/App.tsx
 //ルーティング設定
 
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,7 +11,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Calibration from "@/pages/Calibration";
 
-function Router() {
+function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -24,12 +24,14 @@ function Router() {
 
 function App() {
   return (
+    <Router base="/PuzzleSolver">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AppRouter />
       </TooltipProvider>
     </QueryClientProvider>
+    </Router>
   );
 }
 
